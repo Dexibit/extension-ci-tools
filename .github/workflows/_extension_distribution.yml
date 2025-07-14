@@ -231,7 +231,7 @@ jobs:
 
   linux:
     name: Linux
-    runs-on: ${{ matrix.runner }}
+    runs-on: codebuild-dexiduck-${{ github.run_id }}-${{ github.run_attempt }}
     needs: generate_matrix
     if: ${{ needs.generate_matrix.outputs.linux_matrix != '{}' && needs.generate_matrix.outputs.linux_matrix != '' }}
     strategy:
@@ -278,19 +278,6 @@ jobs:
               echo "---"
               docker rmi $(cat package.list)
           fi
-          rm package.list
-
-      - name: Restart docker to run on /mnt
-        run: |
-          sudo systemctl stop docker
-
-      - name: Configure Docker with custom data directory
-        run: |
-          sudo mkdir -p /mnt/docker-data
-          echo '{ "data-root": "/mnt/docker-data" }' | sudo tee /etc/docker/daemon.json
-
-      - name: Start Docker with updated storage path
-        run: sudo systemctl start docker
 
       - name: Verify Docker storage path
         run: docker info | grep "Docker Root Dir"
