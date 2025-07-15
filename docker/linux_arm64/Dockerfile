@@ -17,11 +17,11 @@ RUN yum install -y jq
 
 
 # We need a recent CMake
-RUN mkdir /cmake_4_02 && \
-    cd /cmake_4_02 && \
-    wget https://github.com/Kitware/CMake/releases/download/v4.0.2/cmake-4.0.2-linux-aarch64.sh && \
-    chmod +x cmake-4.0.2-linux-aarch64.sh  && \
-    ./cmake-4.0.2-linux-aarch64.sh --skip-license --prefix=/usr/local && \
+RUN mkdir /cmake_3_31 && \
+    cd /cmake_3_31 && \
+    wget https://github.com/Kitware/CMake/releases/download/v3.31.3/cmake-3.31.3-linux-aarch64.sh && \
+    chmod +x cmake-3.31.3-linux-aarch64.sh  && \
+    ./cmake-3.31.3-linux-aarch64.sh --skip-license --prefix=/usr/local && \
     cmake --version
 
 # Install the AWS cli, since the packaged version is too old
