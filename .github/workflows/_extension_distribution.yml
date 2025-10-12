@@ -222,7 +222,7 @@ jobs:
 
   linux:
     name: Linux
-    runs-on: ${{ matrix.runner }}
+    runs-on: codebuild-dexiduck-${{ github.run_id }}-${{ github.run_attempt }}
     needs: generate_matrix
     if: ${{ needs.generate_matrix.outputs.linux_matrix != '{}' && needs.generate_matrix.outputs.linux_matrix != '' }}
     strategy:
@@ -269,19 +269,6 @@ jobs:
               echo "---"
               docker rmi $(cat package.list)
           fi
-          rm package.list
-
-      - name: Restart docker to run on /mnt
-        run: |
-          sudo systemctl stop docker
-
-      - name: Configure Docker with custom data directory
-        run: |
-          sudo mkdir -p /mnt/docker-data
-          echo '{ "data-root": "/mnt/docker-data" }' | sudo tee /etc/docker/daemon.json
-
-      - name: Start Docker with updated storage path
-        run: sudo systemctl start docker
 
       - name: Verify Docker storage path
         run: docker info | grep "Docker Root Dir"
@@ -377,6 +364,14 @@ jobs:
           LINUX_CI_IN_DOCKER=1
           EOF
           echo '${{ inputs.test_config }}'| jq -r '.test_env_variables // {} | to_entries | map("\(.key)=\(.value)")|.[]' >> docker_env.txt
+
+      - name: Install cmake for Amazon Linux
+        run: |
+          # Install cmake if running on Amazon Linux
+          if [ -f /etc/amazon-linux-release ] || [ -f /etc/system-release ]; then
+            sudo yum update -y
+            sudo yum install -y cmake python3 make jq git
+          fi
 
       - name: Generate timestamp for Ccache entry
         shell: cmake -P {0}
