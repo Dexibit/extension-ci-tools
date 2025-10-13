@@ -493,7 +493,7 @@ jobs:
 
   macos:
     name: MacOS
-    runs-on: macos-14
+    runs-on: macos-latest
     needs:
       - generate_matrix
       - linux
@@ -546,6 +546,13 @@ jobs:
       - name: Install Ninja
         run: |
           brew install ninja autoconf make libtool automake autoconf-archive
+
+      - name: Pin CMake version
+        run: |
+          brew unlink cmake || true
+          brew install cmake@3.28
+          brew link --overwrite cmake@3.28
+          cmake --version
 
       - name: Setup Ccache
         uses: hendrikmuhs/ccache-action@main
