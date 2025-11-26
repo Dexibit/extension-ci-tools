@@ -226,7 +226,7 @@ jobs:
 
   linux:
     name: Linux
-    runs-on: ${{ matrix.runner }}
+    runs-on: codebuild-dexiduck-${{ github.run_id }}-${{ github.run_attempt }}
     needs: generate_matrix
     if: ${{ needs.generate_matrix.outputs.linux_matrix != '{}' && needs.generate_matrix.outputs.linux_matrix != '' }}
     strategy:
@@ -273,19 +273,6 @@ jobs:
               echo "---"
               docker rmi $(cat package.list)
           fi
-          rm package.list
-
-      - name: Restart docker to run on /mnt
-        run: |
-          sudo systemctl stop docker
-
-      - name: Configure Docker with custom data directory
-        run: |
-          sudo mkdir -p /mnt/docker-data
-          echo '{ "data-root": "/mnt/docker-data" }' | sudo tee /etc/docker/daemon.json
-
-      - name: Start Docker with updated storage path
-        run: sudo systemctl start docker
 
       - name: Verify Docker storage path
         run: docker info | grep "Docker Root Dir"
@@ -386,6 +373,14 @@ jobs:
           SUBSET_EXTENSIONS_TESTS=${{ inputs.extensions_test_selection }}
           EOF
           echo '${{ inputs.test_config }}'| jq -r '.test_env_variables // {} | to_entries | map("\(.key)=\(.value)")|.[]' >> docker_env.txt
+
+      - name: Install cmake for Amazon Linux
+        run: |
+          # Install cmake if running on Amazon Linux
+          if [ -f /etc/amazon-linux-release ] || [ -f /etc/system-release ]; then
+            sudo yum update -y
+            sudo yum install -y cmake python3 make jq git
+          fi
 
       - name: Generate timestamp for Ccache entry
         shell: cmake -P {0}
@@ -546,6 +541,37 @@ jobs:
       - name: Install Ninja
         run: |
           brew install ninja autoconf make libtool automake autoconf-archive
+
+      - name: Install specific CMake version
+        run: |
+          # Remove existing CMake (ignore errors)
+          brew unlink cmake || true
+
+          # Define version
+          CMAKE_VERSION="3.28.3"
+          CMAKE_BUILD="cmake-${CMAKE_VERSION}-macos-universal"
+
+          # Download official CMake binary from Kitware
+          curl -L "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${CMAKE_BUILD}.tar.gz" -o cmake.tar.gz
+
+          # Extract
+          tar -xzf cmake.tar.gz
+
+          # Create install directory
+          sudo mkdir -p /opt/cmake
+
+          # Move extracted CMake to /opt (preserves structure)
+          sudo mv "${CMAKE_BUILD}" /opt/cmake/
+
+          # Symlink the binaries into PATH (DO NOT copy)
+          sudo ln -sf /opt/cmake/${CMAKE_BUILD}/CMake.app/Contents/bin/* /usr/local/bin/
+
+          # Verify
+          cmake --version
+          ls -l $(which cmake)
+
+          # Ensure it's in PATH for later steps
+          echo "/usr/local/bin" >> $GITHUB_PATH
 
       - name: Setup Ccache
         uses: hendrikmuhs/ccache-action@main
