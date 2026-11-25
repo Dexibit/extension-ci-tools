@@ -500,7 +500,7 @@ jobs:
 
   macos:
     name: MacOS
-    runs-on: macos-15
+    runs-on: macos-latest
     needs:
       - generate_matrix
       - linux
